@@ -1,22 +1,22 @@
-import PropTypes from 'prop-types';
-// import s from './PhoneForm.module.css';
-import s from './ContactList.module.css';
-// import { toast } from 'react-toastify';
-// import { /*connect,*/ useDispatch } from "react-redux";
+import { nanoid } from "nanoid";
+import { useState } from "react";
+import { useSelector, useDispatch } from "react-redux";
+import contactsActions from '../../redux/contacts/contactsActions.js';
+import { getContacts } from "../../redux/contacts/contactsSelectors.";
+import Cleave from 'cleave.js/react';
+import s from './PhoneForm.module.css';
+import { toast } from 'react-toastify';
 
-import { connect } from "react-redux";
-import { addContact } from '../../redux/contacts/contacts-actions';
-import { useState } from 'react';
 
-const PhoneBookForm = ({ onSubmit}) => {
-  //  const [contacts, setContacts] = useState(() => {
-  //   return JSON.parse(localStorage.getItem('contacts')) ?? [];
-  // });
+const PhoneBookForm = () => {
   const [name, setName] = useState("");
   const [number, setNumber] = useState("");
-  
-  // const dispatch = useDispatch();
-  
+   const contacts = useSelector(getContacts);
+  const dispatch = useDispatch();
+
+  const nameInputId = nanoid();
+  const telInputId = nanoid();
+
   const handleChange = (e) => {
     const { name, value } = e.currentTarget;
 
@@ -33,61 +33,79 @@ const PhoneBookForm = ({ onSubmit}) => {
         return;
     }
   };
-    const  handleSubmit = (e) => {
-      e.preventDefault();
-  //  if (contacts.some(el => el.name === name)) {
-  //     toast(`🤔 ${name} is already in contacts.`);
-  //     return;
-  //   }
-  //   if (contacts.some(el => el.number === number)) {
-  //     toast(`🤔 ${number} is already in contacts.`);
-  //     return;
-  //   }
-  //   if (!/\d{3}[-]\d{2}[-]\d{2}/g.test(number)) {
-  //     toast.error('Enter the correct number phone!');
-  //     return;
-  //   } else {
-  //     // dispatch(addContact(name, number));
-  //         dispatch(addContact(name, number));
-  //   }
-  
-    onSubmit({ name, number });
-  
-    setName(""); //resetInput 
-    setNumber("");
+  const checkRepeatName = name => {
+    return contacts.find(
+      contact => contact.name.toLowerCase() === name.toLowerCase(),
+    );
   };
 
+  const checkRepeatNumber = number => {
+    return contacts.find(contact => contact.number === number);
+  };
+
+  const checkEmptyQuery = (name, number) => {
+    return name.trim() === '' || number.trim() === '';
+  };
+
+  const checkValidNumber = number => {
+    return !/\d{3}[-]\d{2}[-]\d{2}/g.test(number);
+  };
+
+  const handleSubmit = e => {
+    e.preventDefault();
+    if (checkRepeatName(name)) {
+      toast(`🤔 ${name} is already in the phonebook.`);
+    } else if (checkRepeatNumber(number)) {
+      toast(`🤔 ${number} is already in the phonebook.`);
+    } else if (checkEmptyQuery(name, number)) {
+      toast.info("😱 Enter the contact's name and number phone!");
+    } else if (checkValidNumber(number)) {
+      toast.error('💩 Enter the correct number phone!');
+    } else {
+     dispatch(contactsActions.addContact(name, number));
+    }
+    resetInput();
+  };
+
+  const resetInput = () => {
+    setName('');
+    setNumber('');
+  };
 
   return (
-    <form className={s.form} onSubmit={ handleSubmit} action="">
+    <form className={s.form} onSubmit={handleSubmit} action="">
       <label className={s.label} htmlFor="">
         <p>Name</p>
         <input
           className={s.input}
-          // onInput={onSetUserInfo}
-            onChange={handleChange}
+          id={nameInputId}
           type="text"
           name="name"
           value={name}
+          onChange={handleChange}
           pattern="^[a-zA-Zа-яА-Я]+(([' -][a-zA-Zа-яА-Я ])?[a-zA-Zа-яА-Я]*)*$"
           title="Имя может состоять только из букв, апострофа, тире и пробелов. Например Adrian, Jacob Mercer, Charles de Batz de Castelmore d'Artagnan и т. п."
           required
           placeholder="Ivan Ivanov"
         />
       </label>
-      <label className={s.label} htmlFor="">
-        <p>Number</p>
-        <input
-          className={s.input}
-          // onInput={onSetUserInfo}
-             onChange={handleChange}
+  
+         <label className={s.label} htmlFor={nameInputId}>
+       <p>Number</p>
+        <Cleave
+          options={{ delimiter: '-', blocks: [3, 2, 2] }}
+             placeholder="111-11-11"
+           className={s.input}
+            id={telInputId}
           type="tel"
           name="number"
           value={number}
+          onChange={handleChange}
           pattern="\+?\d{1,4}?[-.\s]?\(?\d{1,3}?\)?[-.\s]?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}"
           title="Номер телефона должен состоять цифр и может содержать пробелы, тире, круглые скобки и может начинаться с +"
-          required
-          placeholder="111-11-11"
+          required 
+       
+          
         />
       </label>
      <button className={s.btn} type="submit">
@@ -97,22 +115,8 @@ const PhoneBookForm = ({ onSubmit}) => {
   );
 };
 
-const mapDispatchToProps = (dispatch) => ({
-  onSubmit: ({ name, number }) =>
-    dispatch(addContact(name, number)),
-});
 
-PhoneBookForm.propTypes = {
-  onSubmit: PropTypes.func.isRequired,
-};
-
-export default connect(null, mapDispatchToProps)(PhoneBookForm);
-
-// PhoneBookForm.propTypes = {
-//   onAddContact: PropTypes.func.isRequired
-// };
-
-// export default PhoneBookForm;
+export default PhoneBookForm;
 
 
 
